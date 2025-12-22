@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "language": "go",
+  "rootFolder": ".",
+  "autogenFolder": "autogen",
+  "apiType": "Rest",
+  "entities": [],
+  "relationships": []
+}
