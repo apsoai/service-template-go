@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "scripts": {
+    "db": "pglite-server --port 5432"
+  },
+  "dependencies": {
+    "@electric-sql/pglite-socket": "^0.3.0"
+  },
+  "license": "Apache-2.0"
+}
