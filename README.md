@@ -1,6 +1,8 @@
-# APSO Go Service Template
+# Apso Go Service Template
 
-A Go/Gin REST API template with Swagger documentation, designed for use with the APSO CLI.
+The GitHub template behind every Apso Go backend: Gin, GORM, goose migrations, and PostgreSQL, with Swagger documentation via swaggo. `apso init --name my-api --language go` clones this repository, and `apso generate` turns your `.apsorc` schema into models, handlers, routes, and services inside it. The generated code is yours: Apache-2.0 licensed, no Apso SDK, no runtime dependency.
+
+New to Apso? The [quickstart](https://docs.apso.ai/get-started/quickstart) goes from schema to running API in about ten minutes. All three language templates are listed at [apso.ai/templates](https://apso.ai/templates).
 
 ## Project Structure
 
@@ -93,3 +95,7 @@ Add custom code in the `extensions/` folder:
 - Create additional folders as needed for your custom logic
 
 **Important:** Never modify files in the `autogen/` folder as they will be overwritten by the APSO CLI.
+
+## License
+
+Apache License 2.0. See the [LICENSE](LICENSE) file.

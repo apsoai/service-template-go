@@ -6,6 +6,7 @@ import (
 	"os"
 
 	_ "app/docs"
+	"app/autogen/models"
 	"app/autogen/routes"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -33,8 +34,12 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Auto-migrate models
-	// Add your models here: db.AutoMigrate(&models.YourModel{})
+	// Auto-migrate models when DATABASE_SYNC is enabled
+	if os.Getenv("DATABASE_SYNC") == "true" {
+		if err := db.AutoMigrate(models.All()...); err != nil {
+			log.Fatalf("Failed to auto-migrate: %v", err)
+		}
+	}
 
 	// Create Gin router
 	r := gin.Default()
