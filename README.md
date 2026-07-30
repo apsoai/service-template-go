@@ -19,6 +19,8 @@ New to Apso? The [quickstart](https://docs.apso.ai/get-started/quickstart) goes 
 │   └── services/             # Business logic
 ├── extensions/               # Custom/manual code
 │   └── middleware/           # Custom middleware
+├── internal/                 # Internal (non-generated) packages
+│   └── observability/        # OpenTelemetry tracing bootstrap
 ├── docs/                     # Generated Swagger docs
 ├── .apsorc                   # APSO CLI configuration
 ├── .env.example              # Environment variables template
@@ -72,6 +74,42 @@ docker run -p 3000:3000 --env-file .env my-api
 ## API Documentation
 
 Swagger documentation is available at: `http://localhost:3000/_docs`
+
+## Observability (OpenTelemetry)
+
+Every service built from this template ships with OpenTelemetry auto-instrumentation wired in. When enabled, each incoming HTTP request becomes a trace/span with route, method, status, and latency, and each GORM database query becomes a child span, all exported over OTLP HTTP to a collector you point it at (an OpenTelemetry Collector feeding a Grafana/Tempo stack, or Grafana Cloud's managed OTLP endpoint).
+
+The export destination is never hardwired to an Apso endpoint. You own where telemetry goes.
+
+### Off by default
+
+Tracing is a no-op unless you turn it on. With no OTLP endpoint and no enable flag set, the instrumentation does not start, does not export anything, and cannot block startup on an unreachable collector. Local dev and CI run exactly as before.
+
+### Enabling it
+
+Set the OTLP endpoint (and optionally a service name):
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+export OTEL_SERVICE_NAME=my-api
+go run cmd/main.go
+```
+
+You should see `[otel] tracing enabled (...)` on startup, and traces begin flowing to your collector. Buffered spans are flushed on `SIGINT`/`SIGTERM` before the process exits.
+
+### Environment variables
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP endpoint (OpenTelemetry Collector or Grafana Cloud). Setting this enables tracing. | unset (tracing off) |
+| `OTEL_SERVICE_NAME` | `service.name` reported on every trace. | falls back to `APP_NAME`, then the `.apsorc` `serviceName`, then `apso-go-service` |
+| `OTEL_ENABLED` | Force-enable (`true`/`1`/`yes`/`on`) or force-disable (anything else), overriding endpoint detection. | unset |
+
+Standard `OTEL_*` environment variables (headers, resource attributes, sampling) are honored by the OpenTelemetry SDK as well.
+
+### How it is wired
+
+`internal/observability/tracing.go` builds an OTLP HTTP trace exporter and a `TracerProvider` with `service.name` / `service.version` resource attributes, and registers it as the global provider. In `cmd/main.go` the Gin engine gets `otelgin.Middleware(serviceName)` and the GORM DB gets the OpenTelemetry tracing plugin, both only when tracing is enabled so the default request and query paths are untouched when it is off. The provider is shut down (flushing in-flight spans) as part of the server's graceful shutdown.
 
 ## APSO CLI Integration
 
