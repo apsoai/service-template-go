@@ -34,10 +34,12 @@ func main() {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Auto-migrate models when DATABASE_SYNC is enabled
+	// DATABASE_SYNC=true creates the schema from .apsorc, the same tables,
+	// columns, indexes and constraints the migrations from `apso migrate`
+	// create. It only adds what is missing. Deploys run the migrations instead.
 	if os.Getenv("DATABASE_SYNC") == "true" {
-		if err := db.AutoMigrate(models.All()...); err != nil {
-			log.Fatalf("Failed to auto-migrate: %v", err)
+		if err := models.Migrate(db); err != nil {
+			log.Fatalf("Failed to sync the database schema: %v", err)
 		}
 	}
 
