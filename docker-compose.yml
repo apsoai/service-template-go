@@ -9,7 +9,15 @@ services:
       DATABASE_USER: apso
       DATABASE_PASSWORD: apso
       DATABASE_NAME: apso
+      # The service connects with DATABASE_URL; DATABASE_SYNC creates the tables.
+      DATABASE_URL: postgres://apso:apso@postgres:5432/apso?sslmode=disable
+      DATABASE_SYNC: "true"
       AUTH_DISABLED: ${AUTH_DISABLED:-false}
+      # The service's API key and the local flag (detailed 401 messages).
+      # Compose reads both from .env, where "apso init" and "apso dev" write
+      # them. With no key the service refuses every request but /health.
+      APSO_API_KEY: ${APSO_API_KEY:-}
+      APSO_LOCAL: ${APSO_LOCAL:-}
     depends_on:
       postgres:
         condition: service_healthy
