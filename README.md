@@ -31,7 +31,7 @@ New to Apso? The [quickstart](https://docs.apso.ai/get-started/quickstart) goes 
 
 ### Prerequisites
 
-- Go 1.23+
+- Go 1.23+ (1.25+ when the service serves MCP tools)
 - PostgreSQL
 - Docker (optional)
 
