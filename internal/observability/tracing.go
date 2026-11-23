@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -87,8 +88,10 @@ func InitTracing(ctx context.Context) (shutdown func(context.Context) error, err
 		resource.Default(),
 		resource.NewWithAttributes(
 			semconv.SchemaURL,
-			semconv.ServiceName(ServiceName()),
-			semconv.ServiceVersion(serviceVersion),
+			append([]attribute.KeyValue{
+				semconv.ServiceName(ServiceName()),
+				semconv.ServiceVersion(serviceVersion),
+			}, identityAttributes()...)...,
 		),
 	)
 	if err != nil {
@@ -138,27 +141,62 @@ func endpointForLog() string {
 	return "(SDK default)"
 }
 
-// serviceNameFromApsorc reads the serviceName field from .apsorc, if present.
-// Any error (missing file, bad JSON) is swallowed and returns an empty string.
-func serviceNameFromApsorc() string {
+// apsorcIdentity is the identity the CLI writes into .apsorc at registration.
+type apsorcIdentity struct {
+	ServiceName string `json:"serviceName"`
+	Name        string `json:"name"`
+	ServiceID   string `json:"serviceId"`
+	WorkspaceID string `json:"workspaceId"`
+}
+
+// readApsorc returns the identity from .apsorc. Any error (missing file, bad
+// JSON) yields an empty identity.
+func readApsorc() apsorcIdentity {
 	for _, path := range []string{".apsorc", "../.apsorc"} {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			continue
 		}
-		var cfg struct {
-			ServiceName string `json:"serviceName"`
-			Name        string `json:"name"`
-		}
+		var cfg apsorcIdentity
 		if err := json.Unmarshal(data, &cfg); err != nil {
 			continue
 		}
-		if strings.TrimSpace(cfg.ServiceName) != "" {
-			return cfg.ServiceName
-		}
-		if strings.TrimSpace(cfg.Name) != "" {
-			return cfg.Name
+		return cfg
+	}
+	return apsorcIdentity{}
+}
+
+func serviceNameFromApsorc() string {
+	cfg := readApsorc()
+	if strings.TrimSpace(cfg.ServiceName) != "" {
+		return cfg.ServiceName
+	}
+	return strings.TrimSpace(cfg.Name)
+}
+
+// firstNonEmpty returns the first value that is not blank after trimming.
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v = strings.TrimSpace(v); v != "" {
+			return v
 		}
 	}
 	return ""
+}
+
+// identityAttributes are the Apso ids attached to every trace. Deploy env wins
+// over .apsorc, so a hosted deploy is authoritative and a forked repo that
+// still carries the original's ids is overridden.
+func identityAttributes() []attribute.KeyValue {
+	cfg := readApsorc()
+	var attrs []attribute.KeyValue
+	add := func(key string, vals ...string) {
+		if v := firstNonEmpty(vals...); v != "" {
+			attrs = append(attrs, attribute.String(key, v))
+		}
+	}
+	add("apso.service.id", os.Getenv("APSO_SERVICE_ID"), os.Getenv("SERVICE_ID"), cfg.ServiceID)
+	add("apso.workspace.id", os.Getenv("APSO_WORKSPACE_ID"), cfg.WorkspaceID)
+	add("deployment.environment", os.Getenv("APSO_ENVIRONMENT"), os.Getenv("ENV"))
+	return attrs
 }
