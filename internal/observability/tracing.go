@@ -195,7 +195,8 @@ func identityAttributes() []attribute.KeyValue {
 			attrs = append(attrs, attribute.String(key, v))
 		}
 	}
-	add("apso.service.id", os.Getenv("APSO_SERVICE_ID"), os.Getenv("SERVICE_ID"), cfg.ServiceID)
+	// APSO_SERVICE_ID is the access-token audience (the stack id), not the service id.
+	add("apso.service.id", os.Getenv("SERVICE_ID"), cfg.ServiceID)
 	add("apso.workspace.id", os.Getenv("APSO_WORKSPACE_ID"), cfg.WorkspaceID)
 	add("deployment.environment", os.Getenv("APSO_ENVIRONMENT"), os.Getenv("ENV"))
 	return attrs

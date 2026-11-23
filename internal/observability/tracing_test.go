@@ -14,8 +14,7 @@ func TestIdentityEnvBeatsApsorc(t *testing.T) {
 	t.Chdir(dir)
 	t.Setenv("OTEL_SERVICE_NAME", "")
 	t.Setenv("APP_NAME", "")
-	t.Setenv("APSO_SERVICE_ID", "")
-	t.Setenv("SERVICE_ID", "")
+		t.Setenv("SERVICE_ID", "")
 	t.Setenv("APSO_WORKSPACE_ID", "")
 	if got := ServiceName(); got != "from-file" {
 		t.Fatalf("service name = %q", got)
@@ -27,7 +26,8 @@ func TestIdentityEnvBeatsApsorc(t *testing.T) {
 	if got["apso.service.id"] != "1" || got["apso.workspace.id"] != "9" {
 		t.Fatalf("from file: %v", got)
 	}
-	t.Setenv("APSO_SERVICE_ID", "42")
+	t.Setenv("APSO_SERVICE_ID", "stack-id")
+	t.Setenv("SERVICE_ID", "42")
 	got = map[string]string{}
 	for _, kv := range identityAttributes() {
 		got[string(kv.Key)] = kv.Value.AsString()
